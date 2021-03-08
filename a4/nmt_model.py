@@ -75,10 +75,9 @@ class NMT(nn.Module):
         self.att_projection = nn.Linear(hidden_size * 2, hidden_size, bias=False)  # W_att
         self.combined_output_projection = nn.Linear(hidden_size * 3, hidden_size, bias=False)  # W_u
         self.target_vocab_projection = nn.Linear(hidden_size, len(vocab.tgt), bias=False)  # W_vocab
-
+        
         # dropout 
         self.dropout = nn.Dropout(dropout_rate) 
-
 
     def forward(self, source: List[List[str]], target: List[List[str]]) -> torch.Tensor:
         """ Take a mini-batch of source and target sentences, compute the log-likelihood of
@@ -97,7 +96,6 @@ class NMT(nn.Module):
         # Convert list of lists into tensors
         source_padded = self.vocab.src.to_input_tensor(source, device=self.device)   # Tensor: (max_src_len, b)
         target_padded = self.vocab.tgt.to_input_tensor(target, device=self.device)   # Tensor: (max_tgt_len, b)
-
 
         enc_hiddens, dec_init_state = self.encode(source_padded, source_lengths) 
         enc_masks = self.generate_sent_masks(enc_hiddens, source_lengths)
@@ -224,7 +222,7 @@ class NMT(nn.Module):
         # e_t = ht^T_dec * (W_att * hi_enc)
         e_t = torch.bmm(enc_hiddens_proj, torch.unsqueeze(dec_state_new[0], dim=2)) # (b, src_len, 1)
         e_t = torch.squeeze(e_t, dim=2)  # (b, src_len)
-        
+    
         # Set e_t to -inf where enc_masks has 1
         if enc_masks is not None:
             e_t.data.masked_fill_(enc_masks.bool(), -float('inf'))
@@ -237,8 +235,6 @@ class NMT(nn.Module):
         u_t = torch.cat((a_t, dec_state_new[0]), dim=1)  # (b, 3h)
         v_t = self.combined_output_projection(u_t)  # (b, h)
         O_t = self.dropout(torch.tanh(v_t))    # (b, h)
-
-        ### END YOUR CODE
 
         return dec_state_new, O_t, e_t
 
